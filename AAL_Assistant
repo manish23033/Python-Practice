@@ -1,0 +1,240 @@
+# AAL (All Access Logic): AI Assistant Core Blueprint with JARVIS-style features
+# This conceptual prototype includes proactive AI behaviors, system control, voice capabilities, and ethical cybersecurity tools.
+
+import os
+import subprocess
+import platform
+import datetime  # added as requested
+import socket
+import psutil
+import json
+import random
+import webbrowser
+import pyttsx3
+import threading
+import time
+
+# Added for compatibility with Pyodide if run in browser context
+try:
+    import micropip
+except ImportError:
+    micropip = None
+
+class AALAssistant:
+    def __init__(self):
+        try:
+            self.user_name = os.getlogin()
+        except Exception:
+            self.user_name = "User"
+        self.platform = platform.system()
+        self.boot_time = datetime.datetime.fromtimestamp(psutil.boot_time())
+        self.engine = pyttsx3.init()
+        self.engine.setProperty('rate', 170)
+
+    def speak(self, text):
+        self.engine.say(text)
+        self.engine.runAndWait()
+
+    def threaded_speak(self, text):
+        threading.Thread(target=self.speak, args=(text,)).start()
+
+    # ----------------------- System Diagnostics -----------------------
+    def get_system_info(self):
+        info = {
+            "User": self.user_name,
+            "Platform": self.platform,
+            "Boot Time": self.boot_time.strftime("%Y-%m-%d %H:%M:%S"),
+            "CPU Usage": f"{psutil.cpu_percent()}%",
+            "Memory Usage": f"{psutil.virtual_memory().percent}%",
+        }
+        self.threaded_speak("System diagnostics retrieved.")
+        return info
+        
+
+        
+
+    # ----------------------- Wi-Fi Saved Password Viewer -----------------------
+    def get_saved_wifi_passwords(self):
+        if self.platform != "Windows":
+            return "This feature is only available on Windows."
+
+        profiles_data = subprocess.check_output("netsh wlan show profiles", shell=True).decode()
+        profiles = [line.split(":")[1].strip() for line in profiles_data.split("\n") if "All User Profile" in line]
+
+        wifi_passwords = {}
+        for profile in profiles:
+            try:
+                result = subprocess.check_output(f"netsh wlan show profile name=\"{profile}\" key=clear", shell=True).decode()
+                lines = result.split("\n")
+                password_line = [line for line in lines if "Key Content" in line]
+                password = password_line[0].split(":")[1].strip() if password_line else "None"
+                wifi_passwords[profile] = password
+            except Exception as e:
+                wifi_passwords[profile] = "Error"
+        return wifi_passwords
+
+    # ----------------------- Clipboard Manager -----------------------
+    def get_clipboard_content(self):
+        try:
+            import pyperclip
+            return pyperclip.paste()
+        except:
+            return "Clipboard functionality requires pyperclip module."
+
+    # ----------------------- Contextual Summary Example -----------------------
+    def contextual_summary(self, context):
+        return f"You were working on: {context[:50]}..."
+
+    # ----------------------- Daily Briefing -----------------------
+    def generate_daily_briefing(self):
+        now = datetime.datetime.now()
+        briefing = f"Good morning {self.user_name}, today is {now.strftime('%A, %B %d, %Y')}"
+        briefing += "\n- Weather: Sunny, 24°C\n- Meetings: 2 scheduled\n- System health: Good"
+        self.threaded_speak("Here's your daily briefing.")
+        return briefing
+
+    # ----------------------- File Organizer -----------------------
+    def organize_downloads_by_type(self, path):
+        if not os.path.exists(path):
+            return "Invalid path."
+
+        for file in os.listdir(path):
+            full_path = os.path.join(path, file)
+            if os.path.isfile(full_path):
+                ext = file.split('.')[-1].lower()
+                folder = os.path.join(path, ext + '_files')
+                os.makedirs(folder, exist_ok=True)
+                os.rename(full_path, os.path.join(folder, file))
+        return "Downloads organized."
+
+    # ----------------------- Task Manager Overview -----------------------
+    def list_top_processes(self, top_n=5):
+        processes = [(p.info['pid'], p.info['name'], p.info['cpu_percent'])
+                     for p in psutil.process_iter(['name', 'pid', 'cpu_percent'])]
+        processes.sort(key=lambda x: x[2], reverse=True)
+        return processes[:top_n]
+
+    # ----------------------- Custom AI Personas -----------------------
+    def set_persona(self, mode):
+        modes = {
+            "butler": "Yes sir, how may I assist you today?",
+            "sarcastic": "Oh great, another task? What joy.",
+            "mentor": "Let’s take a deep breath and solve this together.",
+            "futuristic": "Engaging advanced interface. Ready to proceed.",
+        }
+        response = modes.get(mode.lower(), "Persona not found.")
+        self.threaded_speak(response)
+        return response
+
+    # ----------------------- JARVIS-style Features -----------------------
+    def simulate_environment_scan(self):
+        msg = "Environment scan complete. All systems nominal."
+        self.threaded_speak(msg)
+        return msg
+
+    def suggest_based_on_context(self, task):
+        suggestions = {
+            "editing": "Would you like help summarizing or researching this topic?",
+            "coding": "Do you want me to analyze or optimize your code?",
+            "meeting": "Shall I prepare a notes document or send invites?"
+        }
+        result = suggestions.get(task, "No suggestions available for this context.")
+        self.threaded_speak(result)
+        return result
+
+    def emergency_protocol(self):
+        alert = "All systems locked. Sensitive data encrypted. Alert sent to trusted contact."
+        self.threaded_speak("Emergency protocol initiated.")
+        return alert
+
+    def command_chain(self, command):
+        chains = {
+            "project plan": ["Creating project folder", "Generating timeline", "Setting reminders"],
+            "system check": ["Running diagnostics", "Scanning for threats", "Optimizing resources"]
+        }
+        result = chains.get(command, ["Command sequence not found."])
+        self.threaded_speak("Executing command chain.")
+        return result
+
+    def simulate_3d_data_visualization(self):
+        msg = "Visualizing data clusters in 3D space... ready for VR."
+        self.threaded_speak(msg)
+        return msg
+
+    def emotion_response(self, tone):
+        if tone == "urgent":
+            res = "Acknowledged. Prioritizing task immediately."
+        elif tone == "casual":
+            res = "Sure, take your time. I'm here when you're ready."
+        else:
+            res = "Processing your request."
+        self.threaded_speak(res)
+        return res
+
+    def auto_update_suggestion(self):
+        msg = "New feature modules available. Would you like to review and install updates?"
+        self.threaded_speak(msg)
+        return msg
+
+    # ----------------------- Web Search Capability -----------------------
+    def web_search(self, query):
+        url = f"https://www.google.com/search?q={query.replace(' ', '+')}"
+        self.threaded_speak(f"Searching the web for {query}.")
+        webbrowser.open(url)
+        return f"Opened web search for: {query}"
+
+    # ----------------------- Ethical Security Tools -----------------------
+    def run_nmap_scan(self, target="127.0.0.1"):
+        try:
+            result = subprocess.check_output(["nmap", "-F", target], stderr=subprocess.STDOUT)
+            return result.decode()
+        except Exception as e:
+            return f"Nmap error: {e}"
+
+    def run_wireshark(self):
+        try:
+            subprocess.Popen(["wireshark"])
+            return "Wireshark launched."
+        except Exception as e:
+            return f"Wireshark launch failed: {e}"
+
+    def check_aircrack_ng(self):
+        try:
+            result = subprocess.check_output(["aircrack-ng", "--help"], stderr=subprocess.STDOUT)
+            return "Aircrack-ng is installed and available."
+        except Exception as e:
+            return f"Aircrack-ng not found: {e}"
+
+# ----------------------- Example Usage -----------------------
+if __name__ == "__main__":
+    assistant = AALAssistant()
+
+    print("System Info:")
+    print(json.dumps(assistant.get_system_info(), indent=2))
+
+    print("\nDaily Briefing:")
+    print(assistant.generate_daily_briefing())
+
+    print("\nTop Processes:")
+    print(assistant.list_top_processes())
+
+    print("\nSaved Wi-Fi Passwords:")
+    print(json.dumps(assistant.get_saved_wifi_passwords(), indent=2))
+
+    print("\nPersona Mode:")
+    print(assistant.set_persona("futuristic"))
+
+    print("\nSimulated JARVIS Features:")
+    print(assistant.simulate_environment_scan())
+    print(assistant.suggest_based_on_context("coding"))
+    print(assistant.emergency_protocol())
+    print(assistant.command_chain("project plan"))
+    print(assistant.simulate_3d_data_visualization())
+    print(assistant.emotion_response("urgent"))
+    print(assistant.auto_update_suggestion())
+    print(assistant.web_search("latest tech trends"))
+
+    print("\nSecurity Tools:")
+    print(assistant.run_nmap_scan("scanme.nmap.org"))
+    print(assistant.check_aircrack_ng())
+    print(assistant.run_wireshark())
